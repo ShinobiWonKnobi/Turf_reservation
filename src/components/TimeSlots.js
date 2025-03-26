@@ -1,66 +1,119 @@
-import React from 'react';
+import React, { useState } from 'react';
 
-const TimeSlots = ({ onSlotSelect, selectedSlot, bookings }) => {
-  // First row: Morning slots
-  const firstRowSlots = [
-    '3:00 AM', '3:30 AM', '4:00 AM', '4:30 AM', '5:00 AM', '5:30 AM',
-    '6:00 AM', '6:30 AM', '7:00 AM', '7:30 AM', '8:00 AM', '8:30 AM',
-    '9:00 AM', '9:30 AM', '10:00 AM', '10:30 AM', '11:00 AM', '11:30 AM',
-    '12:00 PM', '12:30 PM', '1:00 PM'
-  ];
-
-  // Second row: Afternoon and evening slots
-  const secondRowSlots = [
-    '1:30 PM', '2:00 PM', '2:30 PM', '3:00 PM', '3:30 PM', '4:00 PM',
-    '4:30 PM', '5:00 PM', '5:30 PM', '6:00 PM', '6:30 PM', '7:00 PM',
-    '7:30 PM', '8:00 PM', '8:30 PM', '9:00 PM', '9:30 PM', '10:00 PM',
-    '10:30 PM', '11:00 PM', '11:30 PM'
-  ];
-
-  // Third row: Late night slots (shown in 24-hour format)
-  const thirdRowSlots = [
-    '23:30 PM', '24:00 AM', '24:30 AM', '25:00 AM', '25:30 AM', '26:00 AM', '26:30 AM'
-  ];
-
-  const isSlotBooked = (slot) => {
-    return bookings.some(booking => booking.slot === slot);
-  };
-
-  const handleSlotClick = (slot) => {
-    if (!isSlotBooked(slot)) {
-      onSlotSelect(slot);
-    }
-  };
-
-  const renderTimeSlot = (slot) => {
-    const isBooked = isSlotBooked(slot);
-    const isSelected = selectedSlot === slot;
+const TimeSlots = ({ onSlotSelect, bookings }) => {
+  const [selectedSlots, setSelectedSlots] = useState([]);
+  
+  // Generate time slots with dates for next 48 hours
+  const generateTimeSlots = () => {
+    const slotsByDate = {};
+    const today = new Date();
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
     
-    const slotClass = `time-slot ${isBooked ? 'booked' : ''} ${isSelected ? 'selected' : ''}`;
+    // Generate slots for today and tomorrow
+    [today, tomorrow].forEach((date) => {
+      const dateStr = date.toLocaleDateString('en-US', { 
+        weekday: 'long', 
+        month: 'short', 
+        day: 'numeric' 
+      });
+      
+      slotsByDate[dateStr] = [];
+      
+      // Morning to evening slots (3:00 AM to 11:30 PM)
+      for (let hour = 3; hour < 24; hour++) {
+        for (let min = 0; min < 60; min += 30) {
+          const period = hour < 12 ? 'AM' : 'PM';
+          const displayHour = hour % 12 === 0 ? 12 : hour % 12;
+          const displayMin = min === 0 ? '00' : min;
+          const timeStr = `${displayHour}:${displayMin} ${period}`;
+          slotsByDate[dateStr].push({
+            time: timeStr,
+            date: dateStr,
+            fullText: `${timeStr} ${dateStr}`
+          });
+        }
+      }
+    });
+    
+    return slotsByDate;
+  };
+  
+  const timeSlotsByDate = generateTimeSlots();
+  
+  // Check if slot is booked
+  const isSlotBooked = (slot) => {
+    return bookings.some(booking => 
+      booking.status === 'active' && 
+      booking.slots.includes(slot.fullText)
+    );
+  };
+
+  // Handle slot selection
+  const handleSlotClick = (slot) => {
+    if (isSlotBooked(slot)) return;
+    
+    setSelectedSlots(prev => {
+      const isSelected = prev.some(s => s.fullText === slot.fullText);
+      if (isSelected) {
+        return prev.filter(s => s.fullText !== slot.fullText);
+      } else {
+        if (prev.length >= 4) {
+          alert('You can only select up to 4 slots at once');
+          return prev;
+        }
+        return [...prev, slot];
+      }
+    });
+  };
+
+  // Render individual time slot
+  const renderTimeSlot = (slot) => {
+    const isSelected = selectedSlots.some(s => s.fullText === slot.fullText);
+    const booked = isSlotBooked(slot);
     
     return (
       <button
-        key={slot}
-        className={slotClass}
+        key={slot.fullText}
+        className={`time-slot ${booked ? 'booked' : isSelected ? 'selected' : 'available'}`}
         onClick={() => handleSlotClick(slot)}
-        disabled={isBooked}
+        disabled={booked}
+        aria-pressed={isSelected}
+        aria-label={`${slot.time} ${slot.date} ${booked ? 'Booked' : isSelected ? 'Selected' : 'Available'}`}
+        role="checkbox"
       >
-        {slot}
+        <div className="time-slot-time">{slot.time}</div>
       </button>
     );
   };
 
+  // Render slots for a specific date
+  const renderDateSlots = (date, slots) => {
+    return (
+      <div key={date} className="date-slots-section">
+        <h3 className="date-header">{date}</h3>
+        <div className="time-slots-grid">
+          {slots.map(slot => renderTimeSlot(slot))}
+        </div>
+      </div>
+    );
+  };
+
+  // Update parent component when selections change
+  React.useEffect(() => {
+    onSlotSelect(selectedSlots.map(slot => slot.fullText));
+  }, [selectedSlots, onSlotSelect]);
+
   return (
     <div className="time-slots-container">
-      <h2>Select a Time Slot</h2>
-      <div className="time-slots-grid">
-        {firstRowSlots.map(renderTimeSlot)}
+      <div className="time-slots-header">
+        <h2>Available Slots</h2>
       </div>
-      <div className="time-slots-grid">
-        {secondRowSlots.map(renderTimeSlot)}
-      </div>
-      <div className="time-slots-grid">
-        {thirdRowSlots.map(renderTimeSlot)}
+      {Object.entries(timeSlotsByDate).map(([date, slots]) => 
+        renderDateSlots(date, slots)
+      )}
+      <div className="time-slots-footer">
+        <h2>Taken Slots</h2>
       </div>
     </div>
   );
