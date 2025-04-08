@@ -1,10 +1,19 @@
 import React, { useState } from 'react';
 
-const BookingForm = ({ selectedSlot, onSubmit, onCancel, isLoading }) => {
+// Receive calculatedAmount, bookingType, onBookingTypeChange props
+const BookingForm = ({ 
+    selectedSlot, 
+    onSubmit, 
+    onCancel, 
+    isLoading, 
+    bookingType, 
+    onBookingTypeChange, 
+    calculatedAmount 
+}) => {
+  // Remove amount and bookingType from internal state
   const [formData, setFormData] = useState({
     name: '',
     phone: '',
-    amount: '',
     paymentStatus: 'Pending'
   });
 
@@ -25,40 +34,45 @@ const BookingForm = ({ selectedSlot, onSubmit, onCancel, isLoading }) => {
       newErrors.phone = "Please enter a valid 10-digit phone number";
     }
     
-    // Amount validation - should be a positive number
-    if (isNaN(formData.amount) || Number(formData.amount) <= 0) {
-      newErrors.amount = "Please enter a valid amount";
-    }
-    
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData(prevData => ({
-      ...prevData,
-      [name]: value
-    }));
-    // Clear error when user starts typing
-    if (errors[name]) {
-      setErrors(prev => ({
-        ...prev,
-        [name]: undefined
+    
+    // Use the callback for booking type changes
+    if (name === 'bookingType') {
+      onBookingTypeChange(value); 
+    } else {
+      // Handle other form fields
+      setFormData(prevData => ({
+        ...prevData,
+        [name]: value
       }));
+    }
+
+    // Clear error when user starts typing/changing
+    if (errors[name]) {
+      setErrors(prev => ({ ...prev, [name]: undefined }));
     }
   };
 
   const handleSubmit = (e) => {
     e.preventDefault();
     if (validateForm()) {
-      onSubmit(formData);
+      // Submit only the data managed by this form
+      onSubmit({ 
+        name: formData.name,
+        phone: formData.phone,
+        paymentStatus: formData.paymentStatus
+      });
     }
   };
 
   return (
     <div className="booking-form-container">
-      <h2>Book Slot: {selectedSlot}</h2>
+      <h2>Book Slot(s): {selectedSlot}</h2>
       <form onSubmit={handleSubmit} className="booking-form" noValidate>
         <div className="form-group">
           <label htmlFor="name">Name</label>
@@ -95,21 +109,44 @@ const BookingForm = ({ selectedSlot, onSubmit, onCancel, isLoading }) => {
         </div>
         
         <div className="form-group">
-          <label htmlFor="amount">Amount</label>
+          <label htmlFor="amount">Amount (₹)</label>
           <input
             type="number"
             id="amount"
             name="amount"
-            value={formData.amount}
-            onChange={handleChange}
+            value={calculatedAmount}
             required
+            readOnly
             disabled={isLoading}
-            min="1"
-            step="1"
-            aria-invalid={!!errors.amount}
-            aria-describedby={errors.amount ? "amount-error" : undefined}
           />
-          {errors.amount && <div className="error-message" id="amount-error" role="alert">{errors.amount}</div>}
+        </div>
+        
+        <div className="form-group">
+          <label>Booking Type</label>
+          <div className="radio-group">
+            <label className="radio-label">
+              <input
+                type="radio"
+                name="bookingType"
+                value="5v5"
+                checked={bookingType === '5v5'}
+                onChange={handleChange}
+                disabled={isLoading}
+              />
+              5v5 (Half Ground) - ₹{BASE_PRICE_5V5}/slot
+            </label>
+            <label className="radio-label">
+              <input
+                type="radio"
+                name="bookingType"
+                value="7v7"
+                checked={bookingType === '7v7'}
+                onChange={handleChange}
+                disabled={isLoading}
+              />
+              7v7 (Full Ground) - ₹{BASE_PRICE_7V7}/slot
+            </label>
+          </div>
         </div>
         
         <div className="form-group">
@@ -148,5 +185,9 @@ const BookingForm = ({ selectedSlot, onSubmit, onCancel, isLoading }) => {
     </div>
   );
 };
+
+// Define BASE_PRICE constants here too for display in labels
+const BASE_PRICE_5V5 = parseInt(process.env.REACT_APP_PRICE_5V5 || '500', 10);
+const BASE_PRICE_7V7 = parseInt(process.env.REACT_APP_PRICE_7V7 || '1000', 10);
 
 export default BookingForm; 

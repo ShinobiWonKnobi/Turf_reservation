@@ -254,7 +254,15 @@
   color: black;
 }
 
-.time-slot.booked {
+/* New style for half-booked slots */
+.time-slot.half-booked {
+  background: linear-gradient(to right, #00ff00 50%, #ffdd00 50%); /* Green/Orange split */
+  color: black;
+  border: 1px solid #aaa; /* Add border to make split clearer */
+}
+
+.time-slot.booked, /* Keep old booked class for now? Or rename? */
+.time-slot.full-booked { /* New class for full */
   background-color: #ff0000;
   color: white;
   cursor: not-allowed;
@@ -262,15 +270,23 @@
 
 /* Dark mode time slot colors */
 .dark-mode .time-slot.available {
-  background-color: #00cc00; /* Slightly darker green for dark mode */
+  background-color: #00cc00; 
 }
 
 .dark-mode .time-slot.selected {
-  background-color: #f0f000; /* Slightly darker yellow for dark mode */
+  background-color: #f0f000; 
 }
 
-.dark-mode .time-slot.booked {
-  background-color: #dd0000; /* Slightly darker red for dark mode */
+/* Dark mode for half-booked */
+.dark-mode .time-slot.half-booked {
+  background: linear-gradient(to right, #00cc00 50%, #ffaa00 50%); /* Darker Green/Orange split */
+  color: black;
+  border: 1px solid #666;
+}
+
+.dark-mode .time-slot.booked,
+.dark-mode .time-slot.full-booked {
+  background-color: #dd0000; 
 }
 
 /* Booking form styles */
@@ -361,6 +377,93 @@
   color: #ff6b6b;
 }
 
+/* Add styles for Booking Type Radio Buttons */
+.radio-group {
+  display: flex;
+  gap: 20px; /* Space between radio buttons */
+  margin-top: 10px;
+  margin-bottom: 10px;
+}
+
+.radio-label {
+  display: flex;
+  align-items: center;
+  gap: 8px; /* Space between radio input and text */
+  cursor: pointer;
+  font-size: 1rem;
+}
+
+.radio-label input[type="radio"] {
+  /* Hide default radio button */
+  appearance: none;
+  -webkit-appearance: none;
+  width: 18px;
+  height: 18px;
+  border: 2px solid #ccc;
+  border-radius: 50%;
+  outline: none;
+  cursor: pointer;
+  position: relative; /* For inner dot */
+  transition: border-color 0.2s;
+}
+
+.dark-mode .radio-label input[type="radio"] {
+  border-color: #555;
+}
+
+.radio-label input[type="radio"]:checked {
+  border-color: #007bff; 
+}
+
+.dark-mode .radio-label input[type="radio"]:checked {
+  border-color: #0056b3;
+}
+
+/* Inner dot for checked state */
+.radio-label input[type="radio"]:checked::before {
+  content: '';
+  display: block;
+  width: 10px;
+  height: 10px;
+  background-color: #007bff;
+  border-radius: 50%;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
+
+.dark-mode .radio-label input[type="radio"]:checked::before {
+  background-color: #0056b3;
+}
+
+/* Disable styles */
+.radio-label input[type="radio"]:disabled {
+  cursor: not-allowed;
+  border-color: #e0e0e0;
+}
+
+.dark-mode .radio-label input[type="radio"]:disabled {
+   border-color: #444;
+}
+
+.radio-label input[type="radio"]:disabled + span { /* Assuming text is next sibling or wrapped */
+  color: #aaa;
+}
+
+.dark-mode .radio-label input[type="radio"]:disabled + span {
+  color: #777;
+}
+
+.radio-label input[type="radio"]:checked:disabled::before {
+  background-color: #aaa;
+}
+
+.dark-mode .radio-label input[type="radio"]:checked:disabled::before {
+  background-color: #777;
+}
+
+/* Help text styles */
 .help-text {
   color: #6c757d;
   font-size: 0.9rem;
